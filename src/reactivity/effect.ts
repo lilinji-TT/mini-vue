@@ -6,10 +6,12 @@ class ReactiveEffect {
 
   run() {
     activeEffect = this;
-    this._fn();
+    return this._fn();
   }
 }
 
+// WeakMap      Map    Set
+// targetMap => key => deps
 const targetMap = new WeakMap();
 export function track(target, key) {
   let depsMap = targetMap.get(target);
@@ -42,4 +44,6 @@ export function effect(fn) {
   const _effect = new ReactiveEffect(fn);
 
   _effect.run();
+
+  return _effect.run.bind(_effect);
 }
