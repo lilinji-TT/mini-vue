@@ -1,8 +1,10 @@
 import { extend } from "../shared";
 
+let activeEffect: ReactiveEffect;
+let shouldTrack: boolean;
 class ReactiveEffect {
   private _fn: any;
-  deps = [];
+  deps: any[] = [];
   public scheduler: Function | undefined;
   onStop?: () => void;
   active: boolean = true;
@@ -13,8 +15,17 @@ class ReactiveEffect {
   }
 
   run() {
+    if (!this.active) {
+      return this._fn();
+    }
+
+    shouldTrack = true;
     activeEffect = this;
-    return this._fn();
+
+    const res = this._fn();
+    shouldTrack = false;
+
+    return res;
   }
   stop() {
     if (this.active) {
@@ -32,13 +43,20 @@ function cleanUpEffect(effect: ReactiveEffect) {
   effect.deps.forEach((dep: any) => {
     dep.delete(effect);
   });
+
+  effect.deps.length = 0;
 }
 
 // WeakMap      Map    Set
 // targetMap => key => deps
 const targetMap = new WeakMap();
-let activeEffect;
+
+function isTracking() {
+  return shouldTrack && activeEffect !== undefined;
+}
 export function track(target, key) {
+  if (!isTracking()) return;
+
   let depsMap = targetMap.get(target);
 
   if (!depsMap) {
@@ -46,13 +64,13 @@ export function track(target, key) {
     targetMap.set(target, depsMap);
   }
 
-  let deps = depsMap.get(target);
+  let deps = depsMap.get(key);
   if (!deps) {
     deps = new Set();
     depsMap.set(key, deps);
   }
 
-  if (!activeEffect) return;
+  if (deps.has(activeEffect)) return;
   deps.add(activeEffect);
   activeEffect.deps.push(deps);
 }
