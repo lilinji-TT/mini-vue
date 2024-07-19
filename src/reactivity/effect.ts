@@ -3,13 +3,13 @@ import { extend } from "../shared";
 let activeEffect: ReactiveEffect;
 let shouldTrack: boolean;
 class ReactiveEffect {
-  private _fn: any;
+  private _fn: Function;
   deps: any[] = [];
   public scheduler: Function | undefined;
   onStop?: () => void;
   active: boolean = true;
 
-  constructor(fn, scheduler?: Function) {
+  constructor(fn: Function, scheduler?: Function) {
     this._fn = fn;
     this.scheduler = scheduler;
   }
