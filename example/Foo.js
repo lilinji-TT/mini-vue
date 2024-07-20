@@ -6,7 +6,8 @@ export const Foo = {
 
     const emitAdd = () => {
       console.log("add");
-      emit('emit')
+      emit("add", 11, 12);
+      emit("add-foo", 110, 120);
     };
 
     return {

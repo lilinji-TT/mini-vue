@@ -7,9 +7,6 @@ export const App = {
       "div",
       {
         class: "lg-text red",
-        onClick() {
-          console.log("Hello Click");
-        },
       },
       //   [
       //     h("p", { class: "blue" }, "this is a blue"),
@@ -18,8 +15,11 @@ export const App = {
       [
         h("div", {}, `Hi! ${this.msg}`),
         h(Foo, {
-          onAdd() {
-            console.log("on add");
+          onAdd(a, b) {
+            console.log("on add", a, b);
+          },
+          onAddFoo(a, b) {
+            console.log("on-add-foo", a, b);
           },
         }),
       ]
