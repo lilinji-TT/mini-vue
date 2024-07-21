@@ -5,8 +5,6 @@ import { PublicInstanceHandlers } from "./componentPublicInstance";
 import { initSlots } from "./componentSlots";
 
 export function createComponentInstance(vnode, parent) {
-  console.log("vnode", vnode);
-  console.log("parentComponent", parent);
   const componentInstance = {
     vnode,
     type: vnode.type,

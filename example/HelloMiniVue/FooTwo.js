@@ -3,7 +3,7 @@ import {
   createTextVNode,
   getCurrentInstance,
   inject,
-} from "../lib/guide-mini-vue.esm.js";
+} from "../../lib/guide-mini-vue.esm.js";
 
 export const FooTwo = {
   name: "FooTwo",

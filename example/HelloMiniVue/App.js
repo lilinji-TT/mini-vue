@@ -3,7 +3,7 @@ import {
   createTextVNode,
   getCurrentInstance,
   provide,
-} from "../lib/guide-mini-vue.esm.js";
+} from "../../lib/guide-mini-vue.esm.js";
 import { Foo } from "./Foo.js";
 
 export const App = {

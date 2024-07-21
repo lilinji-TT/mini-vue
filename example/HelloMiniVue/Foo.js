@@ -4,7 +4,7 @@ import {
   getCurrentInstance,
   inject,
   provide,
-} from "../lib/guide-mini-vue.esm.js";
+} from "../../lib/guide-mini-vue.esm.js";
 import { FooTwo } from "./FooTwo.js";
 
 export const Foo = {
