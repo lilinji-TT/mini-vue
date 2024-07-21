@@ -4,13 +4,17 @@ import { initProps } from "./componentProps";
 import { PublicInstanceHandlers } from "./componentPublicInstance";
 import { initSlots } from "./componentSlots";
 
-export function createComponentInstance(vnode) {
+export function createComponentInstance(vnode, parent) {
+  console.log("vnode", vnode);
+  console.log("parentComponent", parent);
   const componentInstance = {
     vnode,
     type: vnode.type,
     setupState: {},
     props: {},
     slots: {},
+    provides: parent ? parent.provides : {},
+    parent,
     emit: () => {},
   };
 
@@ -33,10 +37,13 @@ function setupStatefulComponent(instance: any) {
 
   const { setup } = Component;
   if (setup) {
+    setCurrentInstance(instance);
     // function or object
     const setupResult = setup(shallowReadonly(instance.props), {
       emit: instance.emit,
     });
+
+    setCurrentInstance(null);
 
     handleSetupResult(instance, setupResult);
   }
@@ -59,4 +66,13 @@ function finishComponentSetup(instance: any) {
   if (Component.render) {
     instance.render = Component.render;
   }
+}
+
+let currentInstance: any = null;
+export function getCurrentInstance() {
+  return currentInstance;
+}
+
+function setCurrentInstance(instance) {
+  currentInstance = instance;
 }

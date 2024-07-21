@@ -17,6 +17,9 @@ export const hasChanged = (oldValue, newValue) => {
 export const hasOwn = (target, key) =>
   Object.prototype.hasOwnProperty.call(target, key);
 
+export const hasProperty  = (target, key) => {
+  return key in target;
+};
 export const camelize = (str: string) =>
   str.replace(/-(\w)/g, (_, c: string) => {
     return c ? c.toUpperCase() : "";
