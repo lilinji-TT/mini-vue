@@ -1,5 +1,5 @@
 import { render } from "./renderer";
-import { createVnode } from "./vnode";
+import { createVNode } from "./vnode";
 
 export function createApp(rootComponent) {
   return {
@@ -8,7 +8,7 @@ export function createApp(rootComponent) {
       // component => vNode
       // 所有操作基于vNode实现处理
 
-      const vnode = createVnode(rootComponent);
+      const vnode = createVNode(rootComponent);
 
       render(vnode, rootContainer);
     },
