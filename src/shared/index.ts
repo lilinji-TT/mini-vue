@@ -10,6 +10,15 @@ export const isFunction = (val) => {
 
 export const isArray = Array.isArray;
 
+/**
+ *
+ * @param obj
+ * @returns boolean
+ * @description judge the object is '{}' or not
+ */
+export function isEmptyObject(obj) {
+  return Object.keys(obj).length === 0 && obj.constructor === Object;
+}
 export const hasChanged = (oldValue, newValue) => {
   return !Object.is(oldValue, newValue);
 };
@@ -17,7 +26,7 @@ export const hasChanged = (oldValue, newValue) => {
 export const hasOwn = (target, key) =>
   Object.prototype.hasOwnProperty.call(target, key);
 
-export const hasProperty  = (target, key) => {
+export const hasProperty = (target, key) => {
   return key in target;
 };
 export const camelize = (str: string) =>
