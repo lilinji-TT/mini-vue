@@ -172,13 +172,125 @@ export function createRenderer(options) {
           patch(null, c2[i], container, parentComponent, anchor);
           i++;
         }
-      } else if (i >= e2) {
-        while (i <= e1) {
-          hostRemove(c1[i].el);
-          i++;
+      }
+    } else if (i > e2) {
+      while (i <= e1) {
+        hostRemove(c1[i].el);
+        i++;
+      }
+    } else {
+      let s1 = i;
+      let s2 = i;
+      const toBePatched = e2 - s2 + 1;
+      let patched = 0;
+
+      let moved = false;
+      let maxNewIndexSoFar = 0;
+
+      const keyToNewIndexMap = new Map();
+      const newIndexToOldIndexMap = new Array(toBePatched).fill(0);
+
+      for (let j = s2; j <= e2; j++) {
+        const nextChild = c2[j];
+        keyToNewIndexMap.set(nextChild.key, j);
+      }
+
+      for (let j = s1; j <= e1; j++) {
+        const prevChild = c1[i];
+        if (patched >= toBePatched) {
+          hostRemove(prevChild.el);
+          continue;
+        }
+
+        let newIndex;
+        if (prevChild.key != null) {
+          newIndex = keyToNewIndexMap.get(prevChild.key);
+        } else {
+          for (let k = s2; k <= e2; k++) {
+            if (isSameVNodeType(prevChild, c2[j])) {
+              newIndex = j;
+              break;
+            }
+          }
+        }
+
+        if (newIndex !== undefined) {
+          hostRemove(prevChild.el);
+        } else {
+          if (newIndex >= maxNewIndexSoFar) {
+            maxNewIndexSoFar = newIndex;
+          } else {
+            moved = true;
+          }
+
+          newIndexToOldIndexMap[newIndex - s2] = i + 1;
+
+          patch(prevChild, c2[newIndex], container, parentComponent, null);
+          patched++;
+        }
+      }
+
+      const increasingNewIndexSequence = moved
+        ? getSequence(newIndexToOldIndexMap)
+        : [];
+      let j = increasingNewIndexSequence.length - 1;
+      for (let i = toBePatched; i >= 0; i--) {
+        const nextIndex = i + s2;
+        const nextChild = c2[nextIndex];
+        const anchor = nextIndex + 1 < l2 ? c2[nextIndex + 1] : null;
+
+        if (newIndexToOldIndexMap[i] === 0) {
+          patch(null, nextChild, container, parentComponent, anchor);
+        } else if (moved) {
+          if (j < 0 || i !== increasingNewIndexSequence[j]) {
+            hostInsert(nextChild.el, container, anchor);
+          } else {
+            j--;
+          }
         }
       }
     }
+  }
+
+  function getSequence(nums) {
+    if (nums.length === 0) {
+      return [];
+    }
+
+    // 初始化 dp 数组和 prev 数组
+    const dp = new Array(nums.length).fill(1);
+    const prev = new Array(nums.length).fill(-1);
+
+    let maxLength = 1;
+    let maxIndex = 0;
+
+    // 遍历数组中的每个元素
+    for (let i = 1; i < nums.length; i++) {
+      for (let j = 0; j < i; j++) {
+        // 如果当前元素大于之前的某个元素，更新 dp[i]
+        if (nums[i] > nums[j]) {
+          if (dp[i] < dp[j] + 1) {
+            dp[i] = dp[j] + 1;
+            prev[i] = j;
+          }
+        }
+      }
+      // 更新最长长度和对应的索引
+      if (dp[i] > maxLength) {
+        maxLength = dp[i];
+        maxIndex = i;
+      }
+    }
+
+    // 回溯得到下标集合
+    const indices: number[] = [];
+    for (let i = maxIndex; i >= 0; i = prev[i]) {
+      indices.push(i);
+      if (prev[i] === -1) break;
+    }
+
+    // 下标集合是从末尾开始记录的，所以需要反转
+    return indices.reverse();
   }
 
   function isSameVNodeType(n1, n2) {
