@@ -181,12 +181,17 @@ export function createRenderer(options) {
     } else {
       let s1 = i;
       let s2 = i;
+      // 记录需要处理的元素总个数，
       const toBePatched = e2 - s2 + 1;
+      // 已处理的个数
       let patched = 0;
 
+      // 标记是否需要移动
       let moved = false;
+      // 目前为止记录的最大下标
       let maxNewIndexSoFar = 0;
 
+      // 创建一个key to inde 的 Map 做映射
       const keyToNewIndexMap = new Map();
       const newIndexToOldIndexMap = new Array(toBePatched).fill(0);
 
@@ -197,24 +202,27 @@ export function createRenderer(options) {
 
       for (let j = s1; j <= e1; j++) {
         const prevChild = c1[i];
+        // 判断已处理的个数是否超过了最大需要处理数，超过的直接移除掉
         if (patched >= toBePatched) {
           hostRemove(prevChild.el);
           continue;
         }
 
         let newIndex;
+        // 如果前一个元素的key存在，那么从map中取出
         if (prevChild.key != null) {
           newIndex = keyToNewIndexMap.get(prevChild.key);
         } else {
+          // 如果key没有，那么就遍历找一下有没有相同的child元素，找到后退出循环，并将对应下标赋值给newIndex
           for (let k = s2; k <= e2; k++) {
-            if (isSameVNodeType(prevChild, c2[j])) {
-              newIndex = j;
+            if (isSameVNodeType(prevChild, c2[k])) {
+              newIndex = k;
               break;
             }
           }
         }
 
-        if (newIndex !== undefined) {
+        if (newIndex === undefined) {
           hostRemove(prevChild.el);
         } else {
           if (newIndex >= maxNewIndexSoFar) {
