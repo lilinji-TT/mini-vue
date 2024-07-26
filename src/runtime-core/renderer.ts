@@ -4,6 +4,7 @@ import { ShapeFlags } from "../shared/ShapeFlags";
 import { createComponentInstance, setupComponent } from "./component";
 import { shouldUpdateComponent } from "./componentUpdateUtils";
 import { createAppAPI } from "./createApp";
+import { queueJobs } from "./shceduler";
 import { Fragment, Text } from "./vnode";
 
 export function createRenderer(options) {
@@ -82,27 +83,34 @@ export function createRenderer(options) {
   }
 
   function setupRenderEffect(instance: any, initialVNode, container, anchor) {
-    instance.update = effect(() => {
-      if (!instance.isMounted) {
-        const { proxy } = instance;
-        const subTree = (instance.subTree = instance.render.call(proxy));
-        patch(null, subTree, container, instance, anchor);
-        // 处理 element 完成，得到实例对应的 el 在 subTree 上，赋值给 vnode.el
-        initialVNode.el = subTree.el;
-        instance.isMounted = true;
-      } else {
-        const { proxy, next, vnode } = instance;
-        if (next) {
-          next.el = vnode.el;
-          updateComponentPreRender(instance, next);
-        }
-        const subTree = instance.render.call(proxy);
-        const prevTree = instance.subTree;
-        instance.subTree = subTree;
+    instance.update = effect(
+      () => {
+        if (!instance.isMounted) {
+          const { proxy } = instance;
+          const subTree = (instance.subTree = instance.render.call(proxy));
+          patch(null, subTree, container, instance, anchor);
+          // 处理 element 完成，得到实例对应的 el 在 subTree 上，赋值给 vnode.el
+          initialVNode.el = subTree.el;
+          instance.isMounted = true;
+        } else {
+          const { proxy, next, vnode } = instance;
+          if (next) {
+            next.el = vnode.el;
+            updateComponentPreRender(instance, next);
+          }
+          const subTree = instance.render.call(proxy);
+          const prevTree = instance.subTree;
+          instance.subTree = subTree;
 
-        patch(prevTree, subTree, container, instance, anchor);
+          patch(prevTree, subTree, container, instance, anchor);
+        }
+      },
+      {
+        shceduler() {
+            queueJobs(instance.update)
+        },
       }
-    });
+    );
   }
 
   function processElement(
