@@ -2,6 +2,7 @@ import { effect } from "../reactivity/effect";
 import { hasOwn, isEmptyObject } from "../shared";
 import { ShapeFlags } from "../shared/ShapeFlags";
 import { createComponentInstance, setupComponent } from "./component";
+import { shouldUpdateComponent } from "./componentUpdateUtils";
 import { createAppAPI } from "./createApp";
 import { Fragment, Text } from "./vnode";
 
@@ -37,7 +38,32 @@ export function createRenderer(options) {
   }
 
   function processComponent(n1, n2, container, parentComponent, anchor) {
-    mountComponent(n2, container, parentComponent, anchor);
+    if (!n1) {
+      mountComponent(n2, container, parentComponent, anchor);
+    } else {
+      updateComponent(n1, n2);
+    }
+  }
+
+  function updateComponent(n1, n2) {
+    const instance = (n2.component = n1.component);
+
+    if (shouldUpdateComponent(n1, n2)) {
+      instance.next = null;
+      instance.update();
+    } else {
+      n2.el = n1.el;
+      instance.vnode = n2;
+    }
+  }
+
+  function updateComponentPreRender(instance, nextVNode) {
+    nextVNode.component = instance;
+
+    instance.vnode = nextVNode;
+    instance.next = null;
+
+    instance.props = nextVNode.props;
   }
 
   function mountComponent(
@@ -46,13 +72,17 @@ export function createRenderer(options) {
     parentComponent,
     anchor
   ) {
-    const instance = createComponentInstance(initialVNode, parentComponent);
+    const instance = (initialVNode.component = createComponentInstance(
+      initialVNode,
+      parentComponent
+    ));
+
     setupComponent(instance);
     setupRenderEffect(instance, initialVNode, container, anchor);
   }
 
   function setupRenderEffect(instance: any, initialVNode, container, anchor) {
-    effect(() => {
+    instance.update = effect(() => {
       if (!instance.isMounted) {
         const { proxy } = instance;
         const subTree = (instance.subTree = instance.render.call(proxy));
@@ -61,7 +91,11 @@ export function createRenderer(options) {
         initialVNode.el = subTree.el;
         instance.isMounted = true;
       } else {
-        const { proxy } = instance;
+        const { proxy, next, vnode } = instance;
+        if (next) {
+          next.el = vnode.el;
+          updateComponentPreRender(instance, next);
+        }
         const subTree = instance.render.call(proxy);
         const prevTree = instance.subTree;
         instance.subTree = subTree;
@@ -179,6 +213,7 @@ export function createRenderer(options) {
         i++;
       }
     } else {
+      // 中间对比
       let s1 = i;
       let s2 = i;
       // 记录需要处理的元素总个数，
@@ -222,34 +257,41 @@ export function createRenderer(options) {
           }
         }
 
+        // 如果newIndex不存在代表，该元素已经不存在，需要移除
         if (newIndex === undefined) {
           hostRemove(prevChild.el);
         } else {
+          // 存在的时候
+          // 判断是否需要移动，记录最大newIndex
           if (newIndex >= maxNewIndexSoFar) {
             maxNewIndexSoFar = newIndex;
           } else {
             moved = true;
           }
-
+          // 更新映射数组
           newIndexToOldIndexMap[newIndex - s2] = i + 1;
-
+          // 递归对比
           patch(prevChild, c2[newIndex], container, parentComponent, null);
           patched++;
         }
       }
 
+      // 得到最长递增子序列，判断是否需要移动
       const increasingNewIndexSequence = moved
         ? getSequence(newIndexToOldIndexMap)
         : [];
       let j = increasingNewIndexSequence.length - 1;
+      // 移动操作
       for (let i = toBePatched; i >= 0; i--) {
         const nextIndex = i + s2;
         const nextChild = c2[nextIndex];
         const anchor = nextIndex + 1 < l2 ? c2[nextIndex + 1] : null;
 
+        // 映射对应等于0，说明不存在，直接更新
         if (newIndexToOldIndexMap[i] === 0) {
           patch(null, nextChild, container, parentComponent, anchor);
         } else if (moved) {
+          // 移动插入
           if (j < 0 || i !== increasingNewIndexSequence[j]) {
             hostInsert(nextChild.el, container, anchor);
           } else {
