@@ -6,36 +6,76 @@ const enum TagType {
 }
 export function baseParse(content: string) {
   const context = createParseContext(content);
-  return createRoot(parseChildren(context));
+  return createRoot(parseChildren(context, []));
 }
 
-function parseChildren(context) {
+function parseChildren(context, ancestors) {
   const nodes: any[] = [];
-  let node;
-  const s = context.source;
-  console.log("parseChildren", context);
-  if (s.startsWith("{{")) {
-    node = parseInterpolation(context);
-  } else if (s[0] === "<") {
-    if (/[a-z]/i.test(context.source[1])) {
-      node = parseElement(context);
+  while (!isEnd(context, ancestors)) {
+    let node;
+    const s = context.source;
+    if (s.startsWith("{{")) {
+      node = parseInterpolation(context);
+    } else if (s[0] === "<") {
+      if (/[a-z]/i.test(context.source[1])) {
+        node = parseElement(context, ancestors);
+      } else if (context.source[1] === "/") {
+        const el = ancestors.find(
+          (e) => e.tag === context.source.slice(2, 2 + context.source.length)
+        );
+
+        if (!el) {
+          throw new Error("Invalid tag: " + context.source);
+        }
+      }
     }
+
+    if (!node) {
+      node = parseText(context);
+    }
+
+    nodes.push(node);
   }
 
-  if (!node) {
-    node = parseText(context);
-  }
-
-  nodes.push(node);
   return nodes;
 }
 
-function parseElement(context) {
+function isEnd(context, ancestors) {
+  // 1. source 有值
+  // 2. 当遇到结束标签
+  const source = context.source;
+  if (source.startsWith("</")) {
+    for (let i = ancestors.length - 1; i >= 0; i--) {
+      const tag = ancestors[i].tag;
+      if (startsWithEndTagOpen(source, tag)) {
+        return true;
+      }
+    }
+  }
+
+  return !source;
+}
+
+function parseElement(context, ancestors) {
   const element: any = parseTag(context, TagType.Start);
-  element.children = parseChildren(context);
-  parseTag(context, TagType.End);
+  ancestors.push(element);
+  element.children = parseChildren(context, ancestors);
+  ancestors.pop();
+
+  if (startsWithEndTagOpen(context.source, element.tag)) {
+    parseTag(context, TagType.End);
+  } else {
+    throw new Error(`缺少结束标签：</${element.tag}>`);
+  }
 
   return element;
+}
+
+function startsWithEndTagOpen(source, tag) {
+  return (
+    source.startsWith("</") &&
+    source.slice(2, 2 + tag.length).toLowerCase() === tag.toLowerCase()
+  );
 }
 
 function parseTag(context, type: TagType) {
@@ -92,12 +132,14 @@ function createParseContext(content: string) {
 }
 
 function parseText(context: any) {
-  let endIndex = context.source.length - 1;
-  let endToken = "{{";
+  let endIndex = context.source.length;
+  let endTokens = ["<", "{{"];
 
-  const index = context.source.indexOf(endToken);
-  if (index !== -1) {
-    endIndex = index;
+  for (const endToken of endTokens) {
+    const index = context.source.indexOf(endToken);
+    if (index !== -1 && endIndex > index) {
+      endIndex = index;
+    }
   }
 
   const content = parseTextData(context, endIndex);
