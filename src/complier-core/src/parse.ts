@@ -20,9 +20,10 @@ function parseChildren(context, ancestors) {
       if (/[a-z]/i.test(context.source[1])) {
         node = parseElement(context, ancestors);
       } else if (context.source[1] === "/") {
-        const el = ancestors.find(
-          (e) => e.tag === context.source.slice(2, 2 + context.source.length)
-        );
+        // 判断缺少开始标签的情况
+        // [div,lack span so that is udefined when find] </span></div>
+        const tagName = context.source.slice(2, context.source.indexOf(">"));
+        const el = ancestors.find((e) => e.tag === tagName);
 
         if (!el) {
           throw new Error("Invalid tag: " + context.source);
