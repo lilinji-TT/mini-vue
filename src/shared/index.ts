@@ -4,6 +4,10 @@ export const isObject = (value) => {
   return value !== null && typeof value === "object";
 };
 
+export const isString = (value) => {
+  return typeof value === "string";
+};
+
 export const isFunction = (val) => {
   return Object.prototype.toString.call(val) === "[object Function]";
 };
