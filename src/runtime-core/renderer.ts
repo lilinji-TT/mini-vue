@@ -83,6 +83,7 @@ export function createRenderer(options) {
   }
 
   function setupRenderEffect(instance: any, initialVNode, container, anchor) {
+    // 此处是对应收集effect，对应具体的某个状态，通过deps对应
     instance.update = effect(
       () => {
         if (!instance.isMounted) {
